@@ -1,0 +1,56 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./src:/usr/src/app/src
+      - ./prisma:/usr/src/app/prisma
+      - ./package.json:/usr/src/app/package.json
+      - ./package-lock.json:/usr/src/app/package-lock.json
+      - ./tsconfig.json:/usr/src/app/tsconfig.json
+      - ./nest-cli.json:/usr/src/app/nest-cli.json
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/sweech_db?schema=public
+      - JWT_SECRET=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+      - JWT_EXPIRATION_TIME=20m
+    depends_on:
+      db:
+        condition: service_healthy
+    command: >
+      sh -c '
+        echo "🔄 Waiting for database to be ready...";
+        while ! nc -z db 5432; do sleep 2; done;
+        echo "🔧 Ensuring bcrypt is properly compiled...";
+        npm rebuild bcrypt --build-from-source;
+        echo "🔧 Generating Prisma client...";
+        npx prisma generate;
+        echo "🗃️ Running database migrations...";
+        npx prisma migrate deploy;
+        echo "🚀 Starting development server...";
+        npm run start:dev
+      '
+
+  db:
+    image: postgres:17-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=sweech_db
+      - POSTGRES_INITDB_ARGS=--locale-provider=libc
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sweech_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+volumes:
+  postgres_data:
