@@ -203,4 +203,4 @@ Consistent error response format:
 
 ## 📄 Postman Collection
 
-- Sweech API -> /postman/Sweech-Backend.postman_collection.json
+- You can find and import postman collection from [here](https://github.com/akumbhani66/sweech-test/blob/main/postman/Sweech-Backend.postman_collection.json)
